@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -54,11 +56,31 @@ func toBytes(val uint64, length int, byteOrder binary.ByteOrder) []byte {
 	return bytes[:length]
 }
 
-func str2mac(val []byte) string {
+func mac2str(val []byte) string {
 	macBytes := make([]string, len(val))
 	for i, b := range val {
 		macBytes[i] = fmt.Sprintf("%02x", b)
 	}
 	mac := strings.Join(macBytes, ":")
 	return mac
+}
+
+func str2mac(val string) []byte {
+	strs := strings.Split(val, ":")
+	macBytes := make([]byte, len(strs))
+	for i, s := range strs {
+		b, _ := strconv.ParseInt(s, 16, 16)
+		macBytes[i] = byte(b)
+	}
+	return macBytes
+}
+
+func padiFindHostUniq(raw []byte) []byte {
+	key := []byte{0x01, 0x03}
+	nIdx := bytes.Index(raw, key)
+	if nIdx == -1 {
+		return nil
+	}
+	nLen := int(binary.BigEndian.Uint16(raw[nIdx+2 : nIdx+4]))
+	return append(key, raw[nIdx+2:nIdx+4+nLen]...)
 }

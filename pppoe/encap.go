@@ -4,14 +4,18 @@ import (
 	"encoding/binary"
 	"fmt"
 	"strings"
+
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 )
 
 const identSpaces = "    "
 
 // Pkt is the struct for PPPoE pkt
 type Pkt struct {
+	layers.BaseLayer
 	Vertype   byte
-	Code      Code
+	Code      layers.PPPoECode
 	SessionID uint16
 	Len       uint16
 	Payload   []byte
@@ -20,6 +24,32 @@ type Pkt struct {
 
 // MaxTags is the max tags allowed in a PPPoE pkt
 const MaxTags = 32
+
+// LayerType returns gopacket.LayerTypePPPoE.
+func (pkt *Pkt) LayerType() gopacket.LayerType {
+	return LayerTypePPPoE
+}
+
+// SerializeTo writes the serialized form of this layer into the
+// SerializationBuffer, implementing gopacket.SerializableLayer.
+// See the docs for gopacket.SerializableLayer for more info.
+func (pkt *Pkt) SerializeTo(b gopacket.SerializeBuffer, opts gopacket.SerializeOptions) error {
+	payload := b.Bytes()
+	if opts.FixLengths {
+		pkt.Len = uint16(len(payload))
+	}
+	data, err := pkt.Serialize()
+	if err != nil {
+		return err
+	}
+	bytes, err := b.PrependBytes(len(data))
+	if err != nil {
+		return err
+	}
+	copy(bytes, data)
+
+	return nil
+}
 
 // Parse buf into pkt
 func (pkt *Pkt) Parse(buf []byte) error {
@@ -30,12 +60,12 @@ func (pkt *Pkt) Parse(buf []byte) error {
 	if pkt.Vertype != pppoeVerType {
 		return fmt.Errorf("invalid PPPoE version&type, should be 0x11, got 0x%X ", pkt.Vertype)
 	}
-	pkt.Code = Code(buf[1])
+	pkt.Code = layers.PPPoECode(buf[1])
 	pkt.SessionID = binary.BigEndian.Uint16(buf[2:4])
 	pkt.Len = binary.BigEndian.Uint16(buf[4:6])
 	pkt.Payload = buf[6 : 6+pkt.Len]
 	pkt.Tags = []Tag{}
-	if pkt.Code == CodeSession {
+	if pkt.Code == layers.PPPoECodeSession {
 		// no parsing of tag for session pkt
 		return nil
 	}
@@ -70,7 +100,7 @@ func (pkt *Pkt) Parse(buf []byte) error {
 
 // Serialize pkt into bytes, without copying, and no padding
 func (pkt *Pkt) Serialize() ([]byte, error) {
-	if pkt.Code != CodeSession {
+	if pkt.Code != layers.PPPoECodeSession {
 		pkt.Payload = []byte{}
 		for _, tag := range pkt.Tags {
 			buf, err := tag.Serialize()
@@ -84,7 +114,10 @@ func (pkt *Pkt) Serialize() ([]byte, error) {
 	header[0] = pppoeVerType
 	header[1] = byte(pkt.Code)
 	binary.BigEndian.PutUint16(header[2:4], pkt.SessionID)
-	binary.BigEndian.PutUint16(header[4:6], uint16(len(pkt.Payload)))
+	if pkt.Len == 0 {
+		pkt.Len = uint16(len(pkt.Payload))
+	}
+	binary.BigEndian.PutUint16(header[4:6], pkt.Len)
 	return append(header, pkt.Payload...), nil
 }
 
@@ -99,7 +132,7 @@ func (pkt *Pkt) GetTag(t TagType) (r []Tag) {
 }
 
 // String returns a string representation of pkt
-func (pkt Pkt) String() string {
+func (pkt *Pkt) String() string {
 	s := fmt.Sprintf("VerType:%x\n", pkt.Vertype)
 	s += fmt.Sprintf("Code:%v\n", pkt.Code)
 	s += fmt.Sprintf("SessionId:%X\n", pkt.SessionID)

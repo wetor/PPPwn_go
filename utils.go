@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"PPPwn_go/pppoe"
 )
 
 func p8(val uint8) []byte {
@@ -83,4 +85,13 @@ func padiFindHostUniq(raw []byte) []byte {
 	}
 	nLen := int(binary.BigEndian.Uint16(raw[nIdx+2 : nIdx+4]))
 	return append(key, raw[nIdx+2:nIdx+4+nLen]...)
+}
+
+func tags2bytes(tags []pppoe.Tag) []byte {
+	buf := bytes.NewBuffer(nil)
+	for _, t := range tags {
+		tmp, _ := t.Serialize()
+		buf.Write(tmp)
+	}
+	return buf.Bytes()
 }

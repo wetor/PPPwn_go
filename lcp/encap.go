@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 )
 
 // Pkt represents a LCP/IPCP/IPv6CP pkt
 type Pkt struct {
+	layers.BaseLayer
 	// Proto is one of ProtoLCP, ProtoIPCP, ProtoIPv6CP
-	Proto PPPProtocolNumber
+	Proto layers.PPPType
 	// Msg code
 	Code MsgCode
 	// Msg Id
@@ -19,7 +22,7 @@ type Pkt struct {
 	// Magic Number if exists
 	MagicNum uint32
 	// rejected protocol number if exists
-	RejectedProto PPPProtocolNumber
+	RejectedProto layers.PPPType
 	//LCP allows mulitple instances of same type of option, and require same order between cfg-request/response
 	Options []Option
 	// pkt payload
@@ -27,8 +30,25 @@ type Pkt struct {
 }
 
 // NewPkt return a new LCP/IPCP/IPv6CP Pkt based on p
-func NewPkt(p PPPProtocolNumber) *Pkt {
+func NewPkt(p layers.PPPType) *Pkt {
 	return &Pkt{Proto: p}
+}
+
+func (p *Pkt) SerializeTo(b gopacket.SerializeBuffer, opts gopacket.SerializeOptions) error {
+	data, err := p.Serialize()
+	if err != nil {
+		return err
+	}
+	bytes, err := b.PrependBytes(len(data))
+	if err != nil {
+		return err
+	}
+	copy(bytes, data)
+	return nil
+}
+
+func (p *Pkt) LayerType() gopacket.LayerType {
+	return LayerTypeLCP
 }
 
 // Serialize into bytes, without copying, and no padding
@@ -48,11 +68,17 @@ func (p *Pkt) Serialize() ([]byte, error) {
 			}
 			p.Payload = append(p.Payload, buf...)
 		}
-		binary.BigEndian.PutUint16(header[2:4], uint16(4+len(p.Payload)))
+		if p.Len == 0 {
+			p.Len = uint16(4 + len(p.Payload))
+		}
+		binary.BigEndian.PutUint16(header[2:4], p.Len)
 		return append(header, p.Payload...), nil
 	}
 	//echo pkt
-	binary.BigEndian.PutUint16(header[2:4], uint16(8+len(p.Payload)))
+	if p.Len == 0 {
+		p.Len = uint16(8 + len(p.Payload))
+	}
+	binary.BigEndian.PutUint16(header[2:4], p.Len)
 	mn := make([]byte, 4)
 	binary.BigEndian.PutUint32(mn, p.MagicNum)
 	return append(header, append(mn, p.Payload...)...), nil
@@ -134,13 +160,13 @@ func (p *Pkt) Parse(buf []byte) error {
 		if len(buf) < 6 {
 			return fmt.Errorf("not enough bytes for a LCP protocol reject pkt, %v", buf)
 		}
-		p.RejectedProto = PPPProtocolNumber(binary.BigEndian.Uint16(buf[4:6]))
+		p.RejectedProto = layers.PPPType(binary.BigEndian.Uint16(buf[4:6]))
 	}
 	return nil
 }
 
 // String return a string representation of p
-func (p Pkt) String() string {
+func (p *Pkt) String() string {
 	s := fmt.Sprintf("%v Code:%v\n", p.Proto, p.Code)
 	s += fmt.Sprintf("ID:%d\n", p.ID)
 	// s += fmt.Sprintf("Len:%d\n", lcp.Len)
@@ -234,7 +260,7 @@ func (mru LCPOpMRU) String() string {
 
 // LCPOpAuthProto is the LCP auth protocol option
 type LCPOpAuthProto struct {
-	Proto   PPPProtocolNumber
+	Proto   layers.PPPType
 	CHAPAlg CHAPAuthAlg
 	Payload []byte
 }
@@ -298,7 +324,7 @@ func (authp *LCPOpAuthProto) Parse(buf []byte) (int, error) {
 	if buf[0] != byte(OpTypeAuthenticationProtocol) {
 		return 0, fmt.Errorf("not a valid %v option", OpTypeAuthenticationProtocol)
 	}
-	authp.Proto = PPPProtocolNumber(binary.BigEndian.Uint16(buf[2:4]))
+	authp.Proto = layers.PPPType(binary.BigEndian.Uint16(buf[2:4]))
 	if buf[1] > 4 && authp.Proto == ProtoCHAP {
 		authp.CHAPAlg = CHAPAuthAlg(buf[4])
 	} else {
@@ -371,12 +397,12 @@ func (mn LCPOpMagicNum) Equal(b Option) bool {
 type GenericOption struct {
 	code    uint8
 	payload []byte
-	proto   PPPProtocolNumber
+	proto   layers.PPPType
 }
 
 // NewGenericOption creates a new GenericOption with p as the specified protocol;
 // only LCP/IPCP/IPv6CP are supported;
-func NewGenericOption(p PPPProtocolNumber) (*GenericOption, error) {
+func NewGenericOption(p layers.PPPType) (*GenericOption, error) {
 	r := new(GenericOption)
 	switch p {
 	case ProtoLCP, ProtoIPCP, ProtoIPv6CP:

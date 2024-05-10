@@ -4,7 +4,6 @@ import (
 	"log"
 	"net"
 	"reflect"
-	"time"
 
 	"PPPwn_go/lcp"
 	"PPPwn_go/pppoe"
@@ -19,7 +18,7 @@ type Packet struct {
 }
 
 func NewPacket(iface, bpfFilyer string) *Packet {
-	handle, err := pcap.OpenLive(iface, 2048, true, time.Millisecond)
+	handle, err := pcap.OpenLive(iface, 2048, true, pcap.BlockForever)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,10 +26,13 @@ func NewPacket(iface, bpfFilyer string) *Packet {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	source := gopacket.NewPacketSource(handle, handle.LinkType())
+	source.DecodeOptions.NoCopy = true
+	source.DecodeOptions.Lazy = true
+	source.DecodeOptions.DecodeStreamsAsDatagrams = true
 	return &Packet{
 		Handle: handle,
-		Source: gopacket.NewPacketSource(handle, handle.LinkType()),
+		Source: source,
 	}
 }
 
@@ -40,6 +42,14 @@ type SendParams struct {
 }
 
 func (p *Packet) Send(params *SendParams) error {
+	data, err := p.ToBytes(params)
+	if err != nil {
+		return nil
+	}
+	return p.Handle.WritePacketData(data)
+}
+
+func (p *Packet) ToBytes(params *SendParams) ([]byte, error) {
 	buffer := gopacket.NewSerializeBuffer()
 	options := gopacket.SerializeOptions{
 		FixLengths:       params.FixLengths,
@@ -47,9 +57,9 @@ func (p *Packet) Send(params *SendParams) error {
 	}
 	err := gopacket.SerializeLayers(buffer, options, params.Layers...)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return p.Handle.WritePacketData(buffer.Bytes())
+	return buffer.Bytes(), err
 }
 
 type SendLCPParams struct {

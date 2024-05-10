@@ -1,13 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"encoding/binary"
-	"fmt"
-	"strconv"
-	"strings"
-
-	"PPPwn_go/pppoe"
 )
 
 func p8(val uint8) []byte {
@@ -58,40 +52,16 @@ func toBytes(val uint64, length int, byteOrder binary.ByteOrder) []byte {
 	return bytes[:length]
 }
 
-func mac2str(val []byte) string {
-	macBytes := make([]string, len(val))
-	for i, b := range val {
-		macBytes[i] = fmt.Sprintf("%02x", b)
-	}
-	mac := strings.Join(macBytes, ":")
-	return mac
-}
+func splitBytes(data []byte, chunkSize int) [][]byte {
+	var chunks [][]byte
 
-func str2mac(val string) []byte {
-	strs := strings.Split(val, ":")
-	macBytes := make([]byte, len(strs))
-	for i, s := range strs {
-		b, _ := strconv.ParseInt(s, 16, 16)
-		macBytes[i] = byte(b)
+	for i := 0; i < len(data); i += chunkSize {
+		end := i + chunkSize
+		if end > len(data) {
+			end = len(data)
+		}
+		chunks = append(chunks, data[i:end])
 	}
-	return macBytes
-}
 
-func padiFindHostUniq(raw []byte) []byte {
-	key := []byte{0x01, 0x03}
-	nIdx := bytes.Index(raw, key)
-	if nIdx == -1 {
-		return nil
-	}
-	nLen := int(binary.BigEndian.Uint16(raw[nIdx+2 : nIdx+4]))
-	return append(key, raw[nIdx+2:nIdx+4+nLen]...)
-}
-
-func tags2bytes(tags []pppoe.Tag) []byte {
-	buf := bytes.NewBuffer(nil)
-	for _, t := range tags {
-		tmp, _ := t.Serialize()
-		buf.Write(tmp)
-	}
-	return buf.Bytes()
+	return chunks
 }

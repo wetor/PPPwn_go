@@ -15,3 +15,7 @@
 # vendor/
 .DS_Store
 .idea/
+
+testdata/
+*_test.go
+*.bat

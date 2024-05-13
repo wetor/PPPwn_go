@@ -6,14 +6,16 @@ import (
 	"log"
 	"os"
 
+	"github.com/wetor/PPPwn_go/cmd/common"
 	"github.com/wetor/PPPwn_go/internal/exploit"
 	"github.com/wetor/PPPwn_go/internal/utils"
 )
 
 func main() {
 	var fw, netInterface, stage1, stage2 string
-	var list bool
+	var list, ver bool
 	flag.BoolVar(&list, "list", false, "list net interface")
+	flag.BoolVar(&ver, "v", false, "show version")
 	flag.StringVar(&fw, "fw", "", "PS4 firmware")
 	flag.StringVar(&netInterface, "interface", "", "net interface name")
 	flag.StringVar(&stage1, "stage1", "stage1/stage1.bin", "stage1.bin")
@@ -22,6 +24,11 @@ func main() {
 
 	fmt.Println("[+] PPPwn - PlayStation 4 PPPoE RCE by theflow")
 	fmt.Println("[+] PPPwn_go - Go rewrite version by wetor")
+
+	if ver {
+		fmt.Printf("PPPwn_go %s", common.Version())
+		return
+	}
 
 	if list {
 		utils.ShowInterfaces()

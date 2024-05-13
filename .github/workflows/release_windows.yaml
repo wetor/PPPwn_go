@@ -31,13 +31,23 @@ jobs:
         with:
           go-version: '1.20'
 
+      - name: Get commit and version info
+        id: info
+        run: |
+          VERSION=$(git describe --tags --always)
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          DATE=$(date +'%Y%m%d%H%M%S')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "DATE=$DATE" >> $GITHUB_ENV
+
       - name: Build windows executable
         run: |
           cd $GITHUB_WORKSPACE
           export CGO_ENABLED=0
           export GOOS=${{ matrix.goos }}
           export GOARCH=${{ matrix.goarch }}
-          go build -trimpath -ldflags="-s -w" -o build/PPPwn${{ matrix.ext }} cmd/*.go
+          go build -trimpath -ldflags="-s -w -X 'github.com/wetor/PPPwn_go/cmd/common.version=${{ env.VERSION }}' -X 'github.com/wetor/PPPwn_go/cmd/common.buildTime=${{ env.DATE }}'" -o build/PPPwn${{ matrix.ext }} cmd/*.go
           ${{ matrix.upx }} build/PPPwn${{ matrix.ext }}
 
       - name: pack windows

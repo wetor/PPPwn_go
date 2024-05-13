@@ -42,7 +42,7 @@ Name: "enp4s0", Description: ""
 
 # Build
 ## windows
-- install [npcap](https://npcap.com/#download)
+- install [npcap](https://npcap.com/dist/npcap-1.79.exe)
 ```bash
 set CGO_ENABLED=0
 go build -o PPPwn.exe cmd/main.go 

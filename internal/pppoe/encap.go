@@ -433,22 +433,3 @@ func (bbf BBFTag) String() string {
 	}
 	return s
 }
-
-// NewCircuitRemoteIDTag return a BBF Tag with circuit-id and remote-id sub tag.
-// if cid or rid is empty string, then it will not be included
-func NewCircuitRemoteIDTag(cid, rid string) *BBFTag {
-	newFunc := func(s string, t BBFSubTagNum) *BBFSubTagString {
-		r := new(BBFSubTagString)
-		r.Value = s
-		r.TagType = t
-		return r
-	}
-	bbftag := &BBFTag{}
-	if cid != "" {
-		*bbftag = append(*bbftag, newFunc(cid, BBFSubTagNumCircuitID))
-	}
-	if rid != "" {
-		*bbftag = append(*bbftag, newFunc(rid, BBFSubTagNumRemoteID))
-	}
-	return bbftag
-}

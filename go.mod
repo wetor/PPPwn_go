@@ -1,4 +1,4 @@
-module PPPwn_go
+module github.com/wetor/PPPwn_go
 
 go 1.20
 

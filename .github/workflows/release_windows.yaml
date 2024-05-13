@@ -1,0 +1,52 @@
+name: release_windows
+
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-windows-gnu, os: ubuntu-latest, upx: "upx --lzma",
+              goos: "windows", goarch: "amd64", ext: ".exe", release_ext: ".zip" }
+          - { target: i386-windows-gnu, os: ubuntu-latest, upx: "upx --lzma",
+              goos: "windows", goarch: "386", ext: ".exe", release_ext: ".zip" }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install UPX
+        if: matrix.os == 'ubuntu-latest'
+        uses: crazy-max/ghaction-upx@v3
+        with:
+          install-only: true
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.20'
+
+      - name: Build windows executable
+        run: |
+          cd $GITHUB_WORKSPACE
+          export CGO_ENABLED=0
+          export GOOS=${{ matrix.goos }}
+          export GOARCH=${{ matrix.goarch }}
+          go build -trimpath -ldflags="-s -w" -o build/PPPwn${{ matrix.ext }} cmd/*.go
+          ${{ matrix.upx }} build/PPPwn${{ matrix.ext }}
+
+      - name: pack windows
+        run: |
+          cd build && zip PPPwn_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.release_ext }} -j PPPwn${{ matrix.ext }}
+
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "build/PPPwn_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.release_ext }}"
+          bodyFile: ""
+          allowUpdates: true
+          token: ${{secrets.GITHUB_TOKEN}}

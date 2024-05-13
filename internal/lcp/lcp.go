@@ -4,11 +4,12 @@ package lcp
 import (
 	"context"
 	"fmt"
-	"github.com/google/gopacket/layers"
 	"math/rand"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/google/gopacket/layers"
 )
 
 // LayerNotifyHandler is the handler function to handle Layer event (tlu/tld/tls/tlf as defined in RFC1661)

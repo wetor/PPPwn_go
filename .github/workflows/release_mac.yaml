@@ -1,4 +1,4 @@
-name: release
+name: release_mac
 
 on:
   push:
@@ -13,20 +13,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { target: x86_64-linux-musl,  os: ubuntu-latest, upx: "upx --lzma",
-              goos: "linux", goarch: "amd64", release_ext: ".tar.gz" }
-          - { target: aarch64-linux-musl, os: ubuntu-latest, upx: "upx --lzma",
-              goos: "linux", goarch: "arm64", release_ext: ".tar.gz" }
-          - { target: arm-linux-musleabi, os: ubuntu-latest, upx: "upx --lzma",
-              goos: "linux", goarch: "arm", release_ext: ".tar.gz"  }
+          - { target: x86_64-macos-none,  os: macos-13     ,
+              goos: "darwin", goarch: "amd64", release_ext: ".tar.gz" }
+          - { target: aarch64-macos-none, os: macos-14     ,
+              goos: "darwin", goarch: "arm64", release_ext: ".tar.gz" }
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install UPX
-        if: matrix.os == 'ubuntu-latest'
-        uses: crazy-max/ghaction-upx@v3
-        with:
-          install-only: true
 
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -36,10 +28,6 @@ jobs:
       - uses: goto-bus-stop/setup-zig@v2
         with:
           version: 0.12.0
-
-      - name: Install Dependencies
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get install llvm --no-install-recommends
 
       - name: Build libpcap
         run: |
@@ -72,12 +60,11 @@ jobs:
           export CGO_LDFLAGS="-L/usr/local/lib -Wl,-static"
           export GOOS=${{ matrix.goos }}
           export GOARCH=${{ matrix.goarch }}
-          go build -trimpath -ldflags="-s -w" -o build/PPPwn${{ matrix.ext }} cmd/*.go
-          ${{ matrix.upx }} build/PPPwn${{ matrix.ext }}
 
+          sudo go build -trimpath -ldflags="-s -w" -o build/PPPwn${{ matrix.ext }} cmd/*.go
       - name: pack
         run: |
-          cd build && tar -czvf PPPwn_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.release_ext }} PPPwn${{ matrix.ext }}
+          cd build && sudo tar -czvf PPPwn_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.release_ext }} PPPwn${{ matrix.ext }}
 
       - uses: ncipollo/release-action@v1
         with:

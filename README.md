@@ -2,6 +2,13 @@
 
 Go rewrite of [PPPwn](https://github.com/TheOfficialFloW/PPPwn)
 
+
+# Feature
+
+- [ ] Add failed retry
+- [ ] Optimize performance
+- [ ] Add web front-end support for web control and log viewing
+
 # Usage
 ## windows
 - install [npcap](https://npcap.com/#download)

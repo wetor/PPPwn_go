@@ -8,8 +8,8 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
-	lcp2 "github.com/wetor/PPPwn_go/internal/lcp"
-	pppoe2 "github.com/wetor/PPPwn_go/internal/pppoe"
+	"github.com/wetor/PPPwn_go/internal/lcp"
+	"github.com/wetor/PPPwn_go/internal/pppoe"
 )
 
 type Packet struct {
@@ -66,7 +66,7 @@ type SendLCPParams struct {
 	SrcMAC, DstMAC net.HardwareAddr
 	EthernetType   layers.EthernetType
 	SessionID      uint16
-	LCP            *lcp2.Pkt
+	LCP            *lcp.Pkt
 }
 
 func (p *Packet) SendLCP(params *SendLCPParams) error {
@@ -79,7 +79,7 @@ func (p *Packet) SendLCP(params *SendLCPParams) error {
 				DstMAC:       params.DstMAC,
 				EthernetType: params.EthernetType,
 			},
-			&pppoe2.Pkt{
+			&pppoe.Pkt{
 				SessionID: params.SessionID,
 			},
 			&layers.PPP{
@@ -93,7 +93,7 @@ func (p *Packet) SendLCP(params *SendLCPParams) error {
 type SendPPPoEParams struct {
 	SrcMAC, DstMAC net.HardwareAddr
 	EthernetType   layers.EthernetType
-	PPPoE          *pppoe2.Pkt
+	PPPoE          *pppoe.Pkt
 }
 
 func (p *Packet) SendPPPoE(params *SendPPPoEParams) error {
@@ -182,7 +182,7 @@ func (p *Packet) Receive(params *ReceiveParams) {
 	}
 }
 
-func (p *Packet) ReceivePPPoE(etype layers.EthernetType, code layers.PPPoECode) (eth *layers.Ethernet, pkt *pppoe2.Pkt) {
+func (p *Packet) ReceivePPPoE(etype layers.EthernetType, code layers.PPPoECode) (eth *layers.Ethernet, pkt *pppoe.Pkt) {
 	p.Receive(&ReceiveParams{
 		Layer: []*LayerValue{
 			{
@@ -198,9 +198,9 @@ func (p *Packet) ReceivePPPoE(etype layers.EthernetType, code layers.PPPoECode) 
 				},
 			},
 			{
-				Layer: pppoe2.LayerTypePPPoE,
+				Layer: pppoe.LayerTypePPPoE,
 				Check: func(val any) bool {
-					if packet, ok := val.(*pppoe2.Pkt); ok {
+					if packet, ok := val.(*pppoe.Pkt); ok {
 						if packet.Code == code {
 							pkt = packet
 							return true
@@ -214,7 +214,7 @@ func (p *Packet) ReceivePPPoE(etype layers.EthernetType, code layers.PPPoECode) 
 	return
 }
 
-func (p *Packet) ReceiveLCP(ptype layers.PPPType, code lcp2.MsgCode) (ppp *layers.PPP, pkt *lcp2.Pkt) {
+func (p *Packet) ReceiveLCP(ptype layers.PPPType, code lcp.MsgCode) (ppp *layers.PPP, pkt *lcp.Pkt) {
 	p.Receive(&ReceiveParams{
 		Layer: []*LayerValue{
 			{
@@ -230,9 +230,9 @@ func (p *Packet) ReceiveLCP(ptype layers.PPPType, code lcp2.MsgCode) (ppp *layer
 				},
 			},
 			{
-				Layer: lcp2.LayerTypeLCP,
+				Layer: lcp.LayerTypeLCP,
 				Check: func(val any) bool {
-					if packet, ok := val.(*lcp2.Pkt); ok {
+					if packet, ok := val.(*lcp.Pkt); ok {
 						if packet.Code == code {
 							pkt = packet
 							return true
@@ -246,7 +246,7 @@ func (p *Packet) ReceiveLCP(ptype layers.PPPType, code lcp2.MsgCode) (ppp *layer
 	return
 }
 
-func (p *Packet) ReceiveEthPPPoELCP(ptype layers.PPPType, code lcp2.MsgCode) (eth *layers.Ethernet, poe *pppoe2.Pkt, ppp *layers.PPP, pkt *lcp2.Pkt) {
+func (p *Packet) ReceiveEthPPPoELCP(ptype layers.PPPType, code lcp.MsgCode) (eth *layers.Ethernet, poe *pppoe.Pkt, ppp *layers.PPP, pkt *lcp.Pkt) {
 	p.Receive(&ReceiveParams{
 		Layer: []*LayerValue{
 			{
@@ -260,9 +260,9 @@ func (p *Packet) ReceiveEthPPPoELCP(ptype layers.PPPType, code lcp2.MsgCode) (et
 				},
 			},
 			{
-				Layer: pppoe2.LayerTypePPPoE,
+				Layer: pppoe.LayerTypePPPoE,
 				Check: func(val any) bool {
-					if packet, ok := val.(*pppoe2.Pkt); ok {
+					if packet, ok := val.(*pppoe.Pkt); ok {
 						poe = packet
 						return true
 					}
@@ -282,9 +282,9 @@ func (p *Packet) ReceiveEthPPPoELCP(ptype layers.PPPType, code lcp2.MsgCode) (et
 				},
 			},
 			{
-				Layer: lcp2.LayerTypeLCP,
+				Layer: lcp.LayerTypeLCP,
 				Check: func(val any) bool {
-					if packet, ok := val.(*lcp2.Pkt); ok {
+					if packet, ok := val.(*lcp.Pkt); ok {
 						if packet.Code == code {
 							pkt = packet
 							return true

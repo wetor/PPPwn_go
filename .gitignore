@@ -16,6 +16,6 @@
 .DS_Store
 .idea/
 
-internal/testdata/
+testdata/
 *_test.go
 *.bat

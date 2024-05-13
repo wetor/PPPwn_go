@@ -2,25 +2,66 @@
 
 Go rewrite of [PPPwn](https://github.com/TheOfficialFloW/PPPwn)
 
-**<font color="red">This project is still under continuous development and currently has low availability</font>**
+# Usage
+## windows
+- install [npcap](https://npcap.com/#download)
+- get `stage1` and `stage2` payload
+- get net interface name
+ ```bash
+PPPwn.exe --list
+ ```
+```text
+[+] PPPwn - PlayStation 4 PPPoE RCE by theflow
+[+] PPPwn_go - Go rewrite version by wetor
+Name: "\Device\NPF_{00000000-0000-0000-0000-000000000000}", Description: "Realtek Controller"
+```
+- run program 
+```bash
+PPPwn.exe --fw="950" --interface="\Device\NPF_{00000000-0000-0000-0000-000000000000}" --stage1="stage1.bin" --stage2="stage2.bin"
+```
 
-# Build & Usage
+## linux/macos
+- get `stage1` and `stage2` payload
+- get net interface name
+ ```bash
+./PPPwn --list
+ ```
+```text
+[+] PPPwn - PlayStation 4 PPPoE RCE by theflow
+[+] PPPwn_go - Go rewrite version by wetor
+Name: "enp4s0", Description: ""
+```
+- run program
+```bash
+./PPPwn --fw="950" --interface="enp4s0" --stage1="stage1.bin" --stage2="stage2.bin"
+```
+> If this error occurs, please use `root` user or `sudo` command
+> ```
+> 2024/05/13 09:39:28 enp4s0: You don't have permission to perform this capture on that device (socket: Operation not permitted
+> ```
 
-This project depends on [npcap](https://npcap.com/#download) in Windows, and other system platforms have not been tested yet (`cgo` is required for non Windows compilation)
+# Build
+## windows
+- install [npcap](https://npcap.com/#download)
+```bash
+set CGO_ENABLED=0
+go build -o PPPwn.exe cmd/main.go 
+```
 
-# Progress
+## linux/macos
+- install `libpcap-dev`
+```bash
+CGO_ENABLED=1 go build -o PPPwn cmd/main.go 
+```
 
-Now version `9.50` has been verified and the relevant documents are being supplemented
+# Improved
+- `Scanning for corrupted object`  execution is too slow
 
-- [x] Stage 0  
-- [x] Stage 1  
-- [x] Stage 2  
-- [x] Stage 3  
-- [x] Stage 4  
 
 # Reference
 - [PPPwn](https://github.com/TheOfficialFloW/PPPwn): Exploit  
 - [zouppp](https://github.com/hujun-open/zouppp): The related structures of `LCP` and `PPPoE` , as well as the decoder and Serializer  
 - [pppoe-hijack-go](https://github.com/LuckyC4t/pppoe-hijack-go): Example of using `gopacket`  
+- [PPPwn_cpp](https://github.com/xfangfang/PPPwn_cpp): cross compile libpcap using zig in workflows 
 
 Thanks to Andy's wonderful magic  

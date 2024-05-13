@@ -1,4 +1,4 @@
-name: release_windows
+name: release_mac
 
 on:
   push:

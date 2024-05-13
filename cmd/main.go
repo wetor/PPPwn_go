@@ -14,7 +14,7 @@ func main() {
 	var fw, netInterface, stage1, stage2 string
 	var list bool
 	flag.BoolVar(&list, "list", false, "list net interface")
-	flag.StringVar(&fw, "fw", "950", "PS4 firmware")
+	flag.StringVar(&fw, "fw", "", "PS4 firmware")
 	flag.StringVar(&netInterface, "interface", "", "net interface name")
 	flag.StringVar(&stage1, "stage1", "stage1/stage1.bin", "stage1.bin")
 	flag.StringVar(&stage2, "stage2", "stage2/stage2.bin", "stage2.bin")
@@ -28,13 +28,13 @@ func main() {
 		return
 	}
 
-	if netInterface == "" {
-		log.Fatal("'-interface' required. use '-list' show all net interface name")
-	}
-
 	offs, ok := exploit.FirmwareOffsets[fw]
 	if !ok {
-		log.Fatalf("fw '%s' not supported, only supports ['950']", fw)
+		log.Fatalf("fw '%s' not supported, supported firmwares %v", fw, exploit.SupportedFirmware)
+	}
+
+	if netInterface == "" {
+		log.Fatal("'-interface' required. use '-list' show all net interface name")
 	}
 
 	stage1Data, err := os.ReadFile(stage1)
@@ -46,7 +46,5 @@ func main() {
 		log.Fatal(err)
 	}
 	e := exploit.NewExploit(offs, netInterface, stage1Data, stage2Data)
-	utils.TimeBeginPeriod()
 	e.Run()
-	utils.TimeEndPeriod()
 }

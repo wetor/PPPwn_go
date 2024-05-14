@@ -59,4 +59,5 @@ jobs:
           artifacts: "build/PPPwn_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.release_ext }}"
           bodyFile: ""
           allowUpdates: true
+          prerelease: true
           token: ${{secrets.GITHUB_TOKEN}}

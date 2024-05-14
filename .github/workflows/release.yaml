@@ -18,7 +18,9 @@ jobs:
           - { target: aarch64-linux-musl, os: ubuntu-latest, upx: "upx --lzma",
               goos: "linux", goarch: "arm64", release_ext: ".tar.gz" }
           - { target: arm-linux-musleabi, os: ubuntu-latest, upx: "upx --lzma",
-              goos: "linux", goarch: "arm", release_ext: ".tar.gz"  }
+              goos: "linux", goarch: "arm", release_ext: ".tar.gz" }
+          - { target: arm-linux-musleabi, os: ubuntu-latest, upx: "upx --lzma",
+              goos: "linux", goarch: "arm", goarm: "7", zig_flag: "-mcpu=cortex_a7", release_ext: ".tar.gz"  }
     steps:
       - uses: actions/checkout@v4
 
@@ -47,15 +49,15 @@ jobs:
           export ZIG=`which zig`
           wget https://www.tcpdump.org/release/libpcap-1.10.4.tar.gz
           tar -xf libpcap-1.10.4.tar.gz && cd libpcap-1.10.4
-          ./configure  --host=${{ matrix.target }} CC="$ZIG cc -target ${{ matrix.target }}" CXX="$ZIG c++ -target ${{ matrix.target }}" AR="$ZIG ar" RANLIB="$ZIG ranlib"
+          ./configure  --host=${{ matrix.target }} CC="$ZIG cc -target ${{ matrix.target }} ${{ matrix.zig_flag }}" CXX="$ZIG c++ -target ${{ matrix.target }} ${{ matrix.zig_flag }}" AR="$ZIG ar" RANLIB="$ZIG ranlib"
           make && sudo make install
 
       - name: Set env
         run: |
           cd $GITHUB_WORKSPACE
-          echo $'#!/bin/sh \n zig cc -target ${{ matrix.target }} $@' >> zcc
+          echo $'#!/bin/sh \n zig cc -target ${{ matrix.target }} ${{ matrix.zig_flag }} $@' >> zcc
           sudo chmod +x zcc
-          echo $'#!/bin/sh \n zig c++ -target ${{ matrix.target }} $@' >> zxx
+          echo $'#!/bin/sh \n zig c++ -target ${{ matrix.target }} ${{ matrix.zig_flag }} $@' >> zxx
           sudo chmod +x zxx
           echo $'#!/bin/sh \n zig ar $@' >> zar
           sudo chmod +x zar
@@ -82,6 +84,7 @@ jobs:
           export CGO_LDFLAGS="-L/usr/local/lib -Wl,-static"
           export GOOS=${{ matrix.goos }}
           export GOARCH=${{ matrix.goarch }}
+          export GOARM=${{ matrix.goarm }}
           
           TAG=$(git describe --tags --abbrev=0)
           go build -trimpath -ldflags="-s -w -X 'github.com/wetor/PPPwn_go/cmd/common.version=${{ env.VERSION }}' -X 'github.com/wetor/PPPwn_go/cmd/common.buildTime=${{ env.DATE }}'" -o build/PPPwn${{ matrix.ext }} cmd/*.go
@@ -89,11 +92,12 @@ jobs:
 
       - name: pack
         run: |
-          cd build && tar -czvf PPPwn_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.release_ext }} PPPwn${{ matrix.ext }}
+          cd build && tar -czvf PPPwn_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.goarm }}${{ matrix.release_ext }} PPPwn${{ matrix.ext }}
 
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "build/PPPwn_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.release_ext }}"
+          artifacts: "build/PPPwn_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.goarm }}${{ matrix.release_ext }}"
           bodyFile: ""
           allowUpdates: true
+          prerelease: true
           token: ${{secrets.GITHUB_TOKEN}}

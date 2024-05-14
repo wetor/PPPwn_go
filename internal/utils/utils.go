@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/binary"
 	"fmt"
-	"log"
 
 	"github.com/google/gopacket/pcap"
 )
@@ -70,13 +69,14 @@ func SplitBytes(data []byte, chunkSize int) [][]byte {
 	return chunks
 }
 
-func ShowInterfaces() {
+func ShowInterfaces() error {
 	allInterfaces, err := pcap.FindAllDevs()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	for _, item := range allInterfaces {
 		fmt.Printf("Name: \"%s\", Description: \"%s\"\n", item.Name, item.Description)
 	}
+	return nil
 }

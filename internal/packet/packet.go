@@ -1,7 +1,6 @@
 package packet
 
 import (
-	"log"
 	"net"
 	"reflect"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/wetor/PPPwn_go/internal/lcp"
+	"github.com/wetor/PPPwn_go/internal/logger"
 	"github.com/wetor/PPPwn_go/internal/pppoe"
 )
 
@@ -20,11 +20,11 @@ type Packet struct {
 func NewPacket(iface, bpfFilyer string) *Packet {
 	handle, err := pcap.OpenLive(iface, 2048, true, pcap.BlockForever)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	err = handle.SetBPFFilter(bpfFilyer)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	source := gopacket.NewPacketSource(handle, handle.LinkType())
 	source.DecodeOptions.NoCopy = true

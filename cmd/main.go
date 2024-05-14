@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/wetor/PPPwn_go/cmd/common"
 	"github.com/wetor/PPPwn_go/internal/exploit"
+	"github.com/wetor/PPPwn_go/internal/logger"
 	"github.com/wetor/PPPwn_go/internal/utils"
 )
 
@@ -31,27 +31,49 @@ func main() {
 	}
 
 	if list {
-		utils.ShowInterfaces()
+		err := utils.ShowInterfaces()
+		if err != nil {
+			logger.Fatal(err)
+		}
 		return
 	}
 
 	offs, ok := exploit.FirmwareOffsets[fw]
 	if !ok {
-		log.Fatalf("fw '%s' not supported, supported firmwares %v", fw, exploit.SupportedFirmware)
+		logger.Fatalf("fw '%s' not supported, supported firmwares %v", fw, exploit.SupportedFirmware)
 	}
 
 	if netInterface == "" {
-		log.Fatal("'-interface' required. use '-list' show all net interface name")
+		logger.Fatalf("'-interface' required. use '-list' show all net interface name")
 	}
+
+	out, notify := logger.NewNotify()
+	logger.Init(&logger.Options{
+		File:  "log/log.log",
+		Debug: false,
+		Out:   out,
+	})
+
+	go func() {
+		for {
+			select {
+			case data := <-notify:
+				fmt.Printf("Recive: %s", data)
+			}
+		}
+	}()
 
 	stage1Data, err := os.ReadFile(stage1)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	stage2Data, err := os.ReadFile(stage2)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
+
+	utils.TimeBeginPeriod()
+	defer utils.TimeEndPeriod()
 	e := exploit.NewExploit(offs, netInterface, stage1Data, stage2Data)
 	e.Run()
 }

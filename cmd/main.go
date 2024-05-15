@@ -72,8 +72,6 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	utils.TimeBeginPeriod()
-	defer utils.TimeEndPeriod()
 	e := exploit.NewExploit(offs, netInterface, stage1Data, stage2Data)
 	e.Run()
 }

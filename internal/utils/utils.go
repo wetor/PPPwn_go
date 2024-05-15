@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/google/gopacket/pcap"
 )
@@ -79,4 +80,13 @@ func ShowInterfaces() error {
 		fmt.Printf("Name: \"%s\", Description: \"%s\"\n", item.Name, item.Description)
 	}
 	return nil
+}
+
+// IsExist 判断所给路径文件/文件夹是否存在(返回true是存在)
+func IsExist(path string) bool {
+	_, err := os.Stat(path) //os.Stat获取文件信息
+	if err != nil {
+		return os.IsExist(err)
+	}
+	return true
 }

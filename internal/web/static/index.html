@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <button id="log_pause">Pause</button>
+    <button id="log_resume">Resume</button>
+    <button id="log_terminate">Terminate</button>
+    <button id="log_start">Start</button>
+    <title>WebSocket Log Viewer</title>
+</head>
+
+<body>
+<div id="logs"></div>
+
+<script>
+    const url = "ws://localhost:8899/websocket/log"
+    const logsDiv = document.getElementById("logs");
+    let ws
+
+    function connect(){
+        ws = new WebSocket(url);
+
+        ws.onopen = function () {
+            console.log("WebSocket connection established.");
+        };
+
+        ws.onclose = function () {
+            console.log("WebSocket connection closed.");
+        };
+
+        ws.onmessage = function (event) {
+            console.log(event)
+            const messages = event.data.split("\n\n");
+            const header = JSON.parse(messages[0])
+            console.log(header)
+            if (header.type === 'log'){
+                for (let i = 1; i <= header.count; i++) {
+                    const logItem = document.createElement("p");
+                    logItem.textContent = messages[i];
+                    logsDiv.appendChild(logItem);
+                }
+            }
+        };
+        // 当按钮被点击时发送消息
+        document.getElementById('log_pause').addEventListener('click', (event) => {
+            ws.send('{"action":"log_pause"}');
+        });
+        document.getElementById('log_resume').addEventListener('click', (event) => {
+            ws.send('{"action":"log_resume"}');
+        });
+        document.getElementById('log_terminate').addEventListener('click', (event) => {
+            ws.send('{"action":"log_terminate"}');
+            ws.close()
+        });
+    }
+    document.getElementById('log_start').addEventListener('click', (event) => {
+        connect()
+    });
+
+
+</script>
+</body>
+
+</html>

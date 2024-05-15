@@ -53,8 +53,6 @@ func Sync() error {
 
 func Infof(template string, args ...interface{}) {
 	GetLogger().Infof(template, args...)
-
-	GetLogger().WithOptions()
 }
 
 func Warnf(template string, args ...interface{}) {

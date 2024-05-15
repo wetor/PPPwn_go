@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 
 	"github.com/google/gopacket/pcap"
 )
@@ -113,4 +114,13 @@ func IPv4UDPChecksum(srcIP, dstIP []byte, protocol uint8, udpHeader []byte) uint
 	// Take the one's complement
 	checksum := uint16(^sum)
 	return checksum
+}
+
+// IsExist 判断所给路径文件/文件夹是否存在(返回true是存在)
+func IsExist(path string) bool {
+	_, err := os.Stat(path) //os.Stat获取文件信息
+	if err != nil {
+		return os.IsExist(err)
+	}
+	return true
 }

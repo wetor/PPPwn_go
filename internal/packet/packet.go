@@ -1,6 +1,7 @@
 package packet
 
 import (
+	"bytes"
 	"net"
 	"reflect"
 
@@ -182,7 +183,7 @@ func (p *Packet) Receive(params *ReceiveParams) {
 	}
 }
 
-func (p *Packet) ReceivePPPoE(etype layers.EthernetType, code layers.PPPoECode) (eth *layers.Ethernet, pkt *pppoe.Pkt) {
+func (p *Packet) ReceivePPPoE(etype layers.EthernetType, code layers.PPPoECode, targetMac net.HardwareAddr) (eth *layers.Ethernet, pkt *pppoe.Pkt) {
 	p.Receive(&ReceiveParams{
 		Layer: []*LayerValue{
 			{
@@ -190,6 +191,9 @@ func (p *Packet) ReceivePPPoE(etype layers.EthernetType, code layers.PPPoECode) 
 				Check: func(val any) bool {
 					if packet, ok := val.(*layers.Ethernet); ok {
 						if packet.EthernetType == etype {
+							if targetMac != nil && bytes.Compare(targetMac, packet.SrcMAC) != 0 {
+								return false
+							}
 							eth = packet
 							return true
 						}

@@ -12,7 +12,7 @@ import (
 var (
 	logger     *zap.SugaredLogger
 	loggerInit sync.Once
-	file       = "log/log.log"
+	file       = ""
 	debug      = false
 	out        io.Writer
 )
@@ -26,12 +26,15 @@ type Options struct {
 func Init(opts *Options) {
 	debug = opts.Debug
 	out = opts.Out
+
 	file = opts.File
-	dir := path.Dir(file)
-	_, err := os.Stat(dir)
-	if err != nil {
-		if !os.IsExist(err) {
-			_ = os.MkdirAll(dir, os.ModePerm)
+	if file != "" {
+		dir := path.Dir(file)
+		_, err := os.Stat(dir)
+		if err != nil {
+			if !os.IsExist(err) {
+				_ = os.MkdirAll(dir, os.ModePerm)
+			}
 		}
 	}
 	logger = NewLogger(file, debug, out).Sugar()

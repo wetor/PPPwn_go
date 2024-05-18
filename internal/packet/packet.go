@@ -1,6 +1,7 @@
 package packet
 
 import (
+	"encoding/hex"
 	"net"
 	"reflect"
 
@@ -30,6 +31,7 @@ func NewPacket(iface, bpfFilyer string) *Packet {
 	source.DecodeOptions.NoCopy = true
 	source.DecodeOptions.Lazy = true
 	source.DecodeOptions.DecodeStreamsAsDatagrams = true
+	//source.DecodeOptions.SkipDecodeRecovery = true
 	return &Packet{
 		Handle: handle,
 		Source: source,
@@ -37,14 +39,17 @@ func NewPacket(iface, bpfFilyer string) *Packet {
 }
 
 type SendParams struct {
-	FixLengths, ComputeChecksums bool
-	Layers                       []gopacket.SerializableLayer
+	FixLengths, ComputeChecksums, Log bool
+	Layers                            []gopacket.SerializableLayer
 }
 
 func (p *Packet) Send(params *SendParams) error {
 	data, err := p.ToBytes(params)
 	if err != nil {
-		return nil
+		return err
+	}
+	if params.Log {
+		logger.Debugf("Send \n%v", hex.Dump(data))
 	}
 	return p.Handle.WritePacketData(data)
 }
@@ -71,6 +76,7 @@ type SendLCPParams struct {
 
 func (p *Packet) SendLCP(params *SendLCPParams) error {
 	return p.Send(&SendParams{
+		Log:              true,
 		FixLengths:       true,
 		ComputeChecksums: false,
 		Layers: []gopacket.SerializableLayer{
@@ -98,6 +104,7 @@ type SendPPPoEParams struct {
 
 func (p *Packet) SendPPPoE(params *SendPPPoEParams) error {
 	return p.Send(&SendParams{
+		Log:              true,
 		FixLengths:       true,
 		ComputeChecksums: false,
 		Layers: []gopacket.SerializableLayer{
@@ -160,6 +167,7 @@ type LayerValue struct {
 }
 
 type ReceiveParams struct {
+	Log   bool
 	Layer []*LayerValue
 }
 
@@ -177,6 +185,9 @@ func (p *Packet) Receive(params *ReceiveParams) {
 			}
 		}
 		if checkNum == 0 {
+			if params.Log {
+				logger.Debugf("Receive \n%v", packet.Dump())
+			}
 			break
 		}
 	}
@@ -184,6 +195,7 @@ func (p *Packet) Receive(params *ReceiveParams) {
 
 func (p *Packet) ReceivePPPoE(etype layers.EthernetType, code layers.PPPoECode) (eth *layers.Ethernet, pkt *pppoe.Pkt) {
 	p.Receive(&ReceiveParams{
+		Log: true,
 		Layer: []*LayerValue{
 			{
 				Layer: layers.LayerTypeEthernet,
@@ -216,6 +228,7 @@ func (p *Packet) ReceivePPPoE(etype layers.EthernetType, code layers.PPPoECode) 
 
 func (p *Packet) ReceiveLCP(ptype layers.PPPType, code lcp.MsgCode) (ppp *layers.PPP, pkt *lcp.Pkt) {
 	p.Receive(&ReceiveParams{
+		Log: true,
 		Layer: []*LayerValue{
 			{
 				Layer: layers.LayerTypePPP,

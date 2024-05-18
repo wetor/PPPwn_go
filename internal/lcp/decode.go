@@ -23,5 +23,5 @@ func decodeLCP(data []byte, p gopacket.PacketBuilder) error {
 		return err
 	}
 	p.AddLayer(pkt)
-	return p.NextDecoder(gopacket.DecodeFunc(decodeLCP))
+	return nil
 }

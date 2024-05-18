@@ -47,6 +47,10 @@ Name: "enp4s0", Description: ""
 > 2024/05/13 09:39:28 enp4s0: You don't have permission to perform this capture on that device (socket: Operation not permitted
 > ```
 
+## Debug mode
+- `--debug` Enable debug mode, more information will be output  
+- `--log="log.log"` All outputs will be written to the log file
+
 # Build
 ## windows
 - install [npcap](https://npcap.com/dist/npcap-1.79.exe)
@@ -69,6 +73,6 @@ CGO_ENABLED=1 go build -o PPPwn cmd/main.go
 - [PPPwn](https://github.com/TheOfficialFloW/PPPwn): Exploit  
 - [zouppp](https://github.com/hujun-open/zouppp): The related structures of `LCP` and `PPPoE` , as well as the decoder and Serializer  
 - [pppoe-hijack-go](https://github.com/LuckyC4t/pppoe-hijack-go): Example of using `gopacket`  
-- [PPPwn_cpp](https://github.com/xfangfang/PPPwn_cpp): cross compile libpcap using zig in workflows 
+- [PPPwn_cpp](https://github.com/xfangfang/PPPwn_cpp): cross compile libpcap using zig in workflows and udp payload fragment
 
 Thanks to Andy's wonderful magic  

@@ -32,10 +32,14 @@ func NewLogger(file string, debug bool, out io.Writer) *zap.Logger {
 	} else {
 		consoleConf = zapcore.NewCore(GetEncoder(zapcore.CapitalColorLevelEncoder), zapcore.Lock(os.Stdout), level)
 	}
-	newCore := zapcore.NewTee(
-		zapcore.NewCore(GetEncoder(cEncodeLevel), GetWriteSyncer(file), zapcore.InfoLevel), // 写入文件
+	cores := []zapcore.Core{
 		consoleConf, // 写入控制台
-	)
+	}
+	if file != "" {
+		cores = append(cores, zapcore.NewCore(GetEncoder(cEncodeLevel), GetWriteSyncer(file), level)) // 写入文件
+	}
+	newCore := zapcore.NewTee(cores...)
+
 	return zap.New(newCore)
 
 }

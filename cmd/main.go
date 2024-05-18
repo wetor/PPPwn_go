@@ -12,14 +12,17 @@ import (
 )
 
 func main() {
-	var fw, netInterface, stage1, stage2 string
-	var list, ver bool
+	var fw, netInterface, stage1, stage2, logFile string
+	var list, ver, debug bool
 	flag.BoolVar(&list, "list", false, "list net interface")
 	flag.BoolVar(&ver, "v", false, "show version")
+	flag.BoolVar(&debug, "debug", false, "debug mod(more logs)")
 	flag.StringVar(&fw, "fw", "", "PS4 firmware")
 	flag.StringVar(&netInterface, "interface", "", "net interface name")
 	flag.StringVar(&stage1, "stage1", "stage1/stage1.bin", "stage1.bin")
 	flag.StringVar(&stage2, "stage2", "stage2/stage2.bin", "stage2.bin")
+	flag.StringVar(&logFile, "log", "", "[optional] output log file path")
+
 	flag.Parse()
 
 	fmt.Println("[+] PPPwn - PlayStation 4 PPPoE RCE by theflow")
@@ -47,21 +50,12 @@ func main() {
 		logger.Fatalf("'-interface' required. use '-list' show all net interface name")
 	}
 
-	out, notify := logger.NewNotify()
+	out, _ := logger.NewNotify()
 	logger.Init(&logger.Options{
-		File:  "log/log.log",
-		Debug: false,
+		File:  logFile,
+		Debug: debug,
 		Out:   out,
 	})
-
-	go func() {
-		for {
-			select {
-			case data := <-notify:
-				fmt.Printf("Recive: %s", data)
-			}
-		}
-	}()
 
 	stage1Data, err := os.ReadFile(stage1)
 	if err != nil {

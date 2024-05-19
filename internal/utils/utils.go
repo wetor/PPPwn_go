@@ -80,3 +80,37 @@ func ShowInterfaces() error {
 	}
 	return nil
 }
+
+// IPv4UDPChecksum 计算IPv4 UDP包的校验和
+func IPv4UDPChecksum(srcIP, dstIP []byte, protocol uint8, udpHeader []byte) uint16 {
+	// Pseudo header
+	pseudoHeader := make([]byte, 12)
+	copy(pseudoHeader[0:4], srcIP)
+	copy(pseudoHeader[4:8], dstIP)
+	pseudoHeader[9] = protocol
+	udpLength := len(udpHeader)
+	binary.BigEndian.PutUint16(pseudoHeader[10:12], uint16(udpLength))
+
+	// Combine pseudo header and UDP header
+	data := append(pseudoHeader, udpHeader...)
+
+	// Calculate checksum
+	var sum uint32
+	for i := 0; i < len(data); i += 2 {
+		if i+1 >= len(data) {
+			sum += uint32(data[i]) << 8
+		} else {
+			sum += uint32(data[i])<<8 | uint32(data[i+1])
+		}
+
+	}
+
+	// Add carry
+	for sum > 0xffff {
+		sum = (sum >> 16) + (sum & 0xffff)
+	}
+
+	// Take the one's complement
+	checksum := uint16(^sum)
+	return checksum
+}

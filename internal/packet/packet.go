@@ -2,9 +2,12 @@ package packet
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
+	"github.com/wetor/PPPwn_go/internal/errors"
 	"net"
 	"reflect"
+	"sync"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -168,34 +171,50 @@ type LayerValue struct {
 }
 
 type ReceiveParams struct {
+	Ctx   context.Context
 	Log   bool
 	Layer []*LayerValue
 }
 
-func (p *Packet) Receive(params *ReceiveParams) {
-	for packet := range p.Source.Packets() {
-		checkNum := len(params.Layer)
-		for _, layerValue := range params.Layer {
-			if layer := packet.Layer(layerValue.Layer); layer != nil {
-				if layerValue.Value != nil {
-					reflect.ValueOf(layerValue.Value).Elem().Set(reflect.ValueOf(layer))
+func (p *Packet) Receive(params *ReceiveParams) (err error) {
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-params.Ctx.Done():
+				err = errors.ReceiveTimeoutError
+				return
+			case packet := <-p.Source.Packets():
+				checkNum := len(params.Layer)
+				for _, layerValue := range params.Layer {
+					if layer := packet.Layer(layerValue.Layer); layer != nil {
+						if layerValue.Value != nil {
+							reflect.ValueOf(layerValue.Value).Elem().Set(reflect.ValueOf(layer))
+						}
+						if layerValue.Check(layer) {
+							checkNum--
+						}
+					}
 				}
-				if layerValue.Check(layer) {
-					checkNum--
+				if checkNum == 0 {
+					if params.Log {
+						logger.Debugf("Receive \n%v", packet.Dump())
+					}
+					err = nil
+					return
 				}
 			}
 		}
-		if checkNum == 0 {
-			if params.Log {
-				logger.Debugf("Receive \n%v", packet.Dump())
-			}
-			break
-		}
-	}
+	}()
+	wg.Wait()
+	return
 }
 
-func (p *Packet) ReceivePPPoE(etype layers.EthernetType, code layers.PPPoECode, targetMac net.HardwareAddr) (eth *layers.Ethernet, pkt *pppoe.Pkt) {
-	p.Receive(&ReceiveParams{
+func (p *Packet) ReceivePPPoE(ctx context.Context, etype layers.EthernetType, code layers.PPPoECode, targetMac net.HardwareAddr) (eth *layers.Ethernet, pkt *pppoe.Pkt, err error) {
+	err = p.Receive(&ReceiveParams{
+		Ctx: ctx,
 		Log: true,
 		Layer: []*LayerValue{
 			{
@@ -230,8 +249,9 @@ func (p *Packet) ReceivePPPoE(etype layers.EthernetType, code layers.PPPoECode, 
 	return
 }
 
-func (p *Packet) ReceiveLCP(ptype layers.PPPType, code lcp.MsgCode) (ppp *layers.PPP, pkt *lcp.Pkt) {
-	p.Receive(&ReceiveParams{
+func (p *Packet) ReceiveLCP(ctx context.Context, ptype layers.PPPType, code lcp.MsgCode) (ppp *layers.PPP, pkt *lcp.Pkt, err error) {
+	err = p.Receive(&ReceiveParams{
+		Ctx: ctx,
 		Log: true,
 		Layer: []*LayerValue{
 			{
@@ -263,8 +283,39 @@ func (p *Packet) ReceiveLCP(ptype layers.PPPType, code lcp.MsgCode) (ppp *layers
 	return
 }
 
-func (p *Packet) ReceiveEthPPPoELCP(ptype layers.PPPType, code lcp.MsgCode) (eth *layers.Ethernet, poe *pppoe.Pkt, ppp *layers.PPP, pkt *lcp.Pkt) {
-	p.Receive(&ReceiveParams{
+func (p *Packet) ReceiveICMPv6NS(ctx context.Context, log bool) (icmpv6 *layers.ICMPv6, ns *layers.ICMPv6NeighborSolicitation, err error) {
+	err = p.Receive(&ReceiveParams{
+		Ctx: ctx,
+		Log: log,
+		Layer: []*LayerValue{
+			{
+				Layer: layers.LayerTypeICMPv6,
+				Check: func(val any) bool {
+					if packet, ok := val.(*layers.ICMPv6); ok {
+						icmpv6 = packet
+						return true
+					}
+					return false
+				},
+			},
+			{
+				Layer: layers.LayerTypeICMPv6NeighborSolicitation,
+				Check: func(val any) bool {
+					if packet, ok := val.(*layers.ICMPv6NeighborSolicitation); ok {
+						ns = packet
+						return true
+					}
+					return false
+				},
+			},
+		},
+	})
+	return
+}
+
+func (p *Packet) ReceiveEthPPPoELCP(ctx context.Context, ptype layers.PPPType, code lcp.MsgCode) (eth *layers.Ethernet, poe *pppoe.Pkt, ppp *layers.PPP, pkt *lcp.Pkt, err error) {
+	err = p.Receive(&ReceiveParams{
+		Ctx: ctx,
 		Layer: []*LayerValue{
 			{
 				Layer: layers.LayerTypeEthernet,

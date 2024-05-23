@@ -1,13 +1,14 @@
 # PPPwn go
 
-Go rewrite of [PPPwn](https://github.com/TheOfficialFloW/PPPwn)
-
+Go rewrite of [PPPwn](https://github.com/TheOfficialFloW/PPPwn). 
 
 # Feature
 
-- [ ] Add failed retry
-- [ ] Optimize performance
-- [ ] Add web front-end support for web control and log viewing
+- [x] Failed retry
+- [x] Debug mode
+- [x] Config file
+- [x] MAC whitelist
+- [ ] Web front-end support for web control and log viewing
 
 # Usage
 ## windows
@@ -47,7 +48,37 @@ Name: "enp4s0", Description: ""
 > 2024/05/13 09:39:28 enp4s0: You don't have permission to perform this capture on that device (socket: Operation not permitted
 > ```
 
-## Debug mode
+## Config file (optional)
+`--config=config.yaml` Using configuration file, [sample](configs/config_example.yaml)
+
+config.yaml
+```yaml
+interface: enp4s0
+injects:
+    target_mac:
+    firmware: 1100
+    stage1_file: stage1/stage1.bin
+    stage2_file: stage2/stage2.bin
+```
+run program
+```bash
+./PPPwn --config="config.yaml"
+```
+
+## Whitelist MAC address (optional)
+`--target_mac="C8:23:41:41:41:41"` Inject only this PS4 mac address, empty attempts to inject all devices
+
+## Receive timeout (optional)
+`--receive_timeout=30` Main steps timeout second
+  - `[*] Waiting for LCP configure request... (wait 30s)`
+  - `[*] Waiting for LCP configure reject... (wait 30s)`
+  - `[*] Defeating KASLR... (wait 30s)`
+
+## Auto retry (optional)
+- `--retry` Enable auto retry, automatically retry after failure
+- `--retry_wait=5` Automatic retry wait time after failure
+
+## Debug mode (optional)
 - `--debug` Enable debug mode, more information will be output  
 - `--log="log.log"` All outputs will be written to the log file
 

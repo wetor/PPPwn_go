@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/wetor/PPPwn_go/cmd/common"
 	"github.com/wetor/PPPwn_go/internal/config"
@@ -14,19 +16,23 @@ import (
 func main() {
 	var configFile, logFile string
 	var fw, netInterface, stage1, stage2, targetMac string
-	var list, ver, debug bool
+	var list, ver, debug, retry bool
+	var recvTimeout, retryWait int
 
 	flag.BoolVar(&list, "list", false, "list net interface")
 	flag.BoolVar(&ver, "v", false, "show version")
 	flag.BoolVar(&debug, "debug", false, "debug mod(more logs)")
 
-	flag.StringVar(&configFile, "config", "config.yaml", "config yaml file")
+	flag.StringVar(&configFile, "config", "", "config yaml file")
 	flag.StringVar(&fw, "fw", "", "PS4 firmware")
 	flag.StringVar(&netInterface, "interface", "", "net interface name")
 	flag.StringVar(&stage1, "stage1", "stage1/stage1.bin", "stage1.bin file path")
 	flag.StringVar(&stage2, "stage2", "stage2/stage2.bin", "stage2.bin file path")
 	flag.StringVar(&targetMac, "target_mac", "", "[optional] inject only this mac address")
 	flag.StringVar(&logFile, "log", "", "[optional] output log file path")
+	flag.BoolVar(&retry, "retry", false, "[optional] retry after retry_wait seconds of failure")
+	flag.IntVar(&retryWait, "retry_wait", 5, "[optional] retry after wait seconds of failure")
+	flag.IntVar(&recvTimeout, "receive_timeout", 30, "[optional] main steps timeout second")
 	flag.Parse()
 
 	fmt.Println("[+] PPPwn - PlayStation 4 PPPoE RCE by theflow")
@@ -65,36 +71,64 @@ func main() {
 		}
 
 		config.Conf = &config.Config{
-			Debug: debug,
-			Server: &config.Server{
-				Host: "0.0.0.0",
-				Port: 8899,
-			},
+			Timeout:   recvTimeout,
+			Debug:     debug,
+			LogFile:   logFile,
+			Retry:     retry,
+			RetryWait: retryWait,
 			Interface: netInterface,
-			Injects: []*config.Inject{
-				{
-					TargetMAC:  targetMac,
-					Firmware:   fw,
-					Stage1File: stage1,
-					Stage2File: stage2,
-				},
+			Injects: &config.Inject{
+				TargetMAC:  targetMac,
+				Firmware:   fw,
+				Stage1File: stage1,
+				Stage2File: stage2,
 			},
 		}
 	}
 
 	out, _ := logger.NewNotify()
 	logger.Init(&logger.Options{
-		File:  logFile,
+		File:  config.Conf.LogFile,
 		Debug: config.Conf.Debug,
 		Out:   out,
 	})
 
-	inject := config.Conf.Injects[0]
+	inject := config.Conf.Injects
+
+	stage1Data, err := os.ReadFile(inject.Stage1File)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	stage2Data, err := os.ReadFile(inject.Stage2File)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 	e := exploit.NewExploit(&exploit.Option{
-		Interface: config.Conf.Interface,
-		Inject:    inject,
+		Timeout:    config.Conf.Timeout,
+		Interface:  config.Conf.Interface,
+		Stage1Data: stage1Data,
+		Stage2Data: stage2Data,
+		Inject:     inject,
 	})
+
 	utils.TimeBeginPeriod()
 	defer utils.TimeEndPeriod()
-	e.Run()
+
+	for {
+		err = e.Run()
+		if err != nil {
+			if config.Conf.Retry {
+				_ = e.End()
+				fmt.Println()
+				logger.Infof("[+] retry after %ds...", config.Conf.RetryWait)
+				time.Sleep(time.Duration(config.Conf.RetryWait) * time.Second)
+			} else {
+				logger.Fatal(err)
+				break
+			}
+		} else {
+			break
+		}
+	}
 }

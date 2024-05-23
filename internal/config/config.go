@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -19,10 +20,22 @@ type Inject struct {
 }
 
 type Config struct {
-	Debug     bool      `yaml:"debug"`
-	Server    *Server   `yaml:"server"`
-	Interface string    `yaml:"interface"`
-	Injects   []*Inject `yaml:"injects"`
+	Timeout   int     `yaml:"receive_timeout"`
+	Debug     bool    `yaml:"debug"`
+	LogFile   string  `yaml:"log_file"`
+	Retry     bool    `yaml:"retry"`
+	RetryWait int     `yaml:"retry_wait"`
+	Interface string  `yaml:"interface"`
+	Injects   *Inject `yaml:"injects"`
+}
+
+func (c *Config) Default() {
+	if c.Timeout == 0 {
+		c.Timeout = 30
+	}
+	if c.RetryWait == 0 {
+		c.RetryWait = 5
+	}
 }
 
 var Conf *Config
@@ -37,5 +50,8 @@ func LoadConfig(file string) error {
 	if err != nil {
 		return err
 	}
+	Conf.Default()
+	d, _ := yaml.Marshal(Conf)
+	fmt.Printf("-- CONFIG ------------------------------------\n%s\n----------------------------------------------\n", string(d))
 	return nil
 }

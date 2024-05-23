@@ -1,0 +1,28 @@
+# net interface name. use '--list' show all interface names
+interface: enp4s0
+# pppwn inject config
+injects:
+    # [optional] whitelist MAC address
+    target_mac:
+    # PS4 firmware
+    firmware: 1100
+    # stage1 file path
+    stage1_file: stage1/stage1.bin
+    # stage2 file path
+    stage2_file: stage2/stage2.bin
+
+# [optional] main steps receive timeout. default 30s
+#   [*] Waiting for LCP configure request... (wait 30s)
+#   [*] Waiting for LCP configure reject... (wait 30s)
+#   [*] Defeating KASLR... (wait 30s)
+receive_timeout: 30
+
+# [optional] automatically retry after failure
+retry: false
+# [optional] automatic retry wait time after failure. default 5 second
+retry_wait: 5
+
+# [optional] debug mode. display sending and receiving bytes
+debug: false
+# [optional] write log file
+log_file:

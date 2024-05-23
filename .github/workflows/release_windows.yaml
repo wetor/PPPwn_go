@@ -52,7 +52,10 @@ jobs:
 
       - name: pack windows
         run: |
-          cd build && zip PPPwn_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.release_ext }} -j PPPwn${{ matrix.ext }}
+          cp README.md build/README.md
+          cp README_en.md build/README_en.md
+          cp configs/config_example.yaml build/config.yaml
+          cd build && zip PPPwn_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.release_ext }} -j *
 
       - uses: ncipollo/release-action@v1
         with:

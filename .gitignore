@@ -19,3 +19,5 @@
 testdata/
 *_test.go
 *.bat
+*.log
+configs/config.yaml

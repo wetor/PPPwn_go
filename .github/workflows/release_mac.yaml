@@ -74,7 +74,10 @@ jobs:
           sudo go build -trimpath -ldflags="-s -w -X 'github.com/wetor/PPPwn_go/cmd/common.version=${{ env.VERSION }}' -X 'github.com/wetor/PPPwn_go/cmd/common.buildTime=${{ env.DATE }}'" -o build/PPPwn${{ matrix.ext }} cmd/*.go
       - name: pack
         run: |
-          cd build && sudo tar -czvf PPPwn_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.release_ext }} PPPwn${{ matrix.ext }}
+          sudo cp README.md build/README.md
+          sudo cp README_en.md build/README_en.md
+          sudo cp configs/config_example.yaml build/config.yaml
+          cd build && sudo tar -czvf PPPwn_${{ matrix.goos }}_${{ matrix.goarch }}${{ matrix.release_ext }} *
 
       - uses: ncipollo/release-action@v1
         with:
